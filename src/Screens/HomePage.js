@@ -1,250 +1,4 @@
-// import React, { useState } from 'react';
-// import {
-//   View,
-//   Text,
-//   TextInput,
-//   TouchableOpacity,
-//   ScrollView,
-//   StyleSheet,
-//   Dimensions,
-//   SafeAreaView,
-//   Platform,
-// } from 'react-native';
-// import BottomNavbar from '../Components/ButtomNavbar';
-// import TopNavbar from '../Components/topNavbar';
-// import FoodCard from '../Components/foodCard'; // Import the FoodCard component
-
-// const { width, height } = Dimensions.get('window');
-// const NAVBAR_HEIGHT = 80; // approximate height of your bottom navbar
-
-// const Homepage = ({ navigation }) => {
-//   const [activeCategory, setActiveCategory] = useState('Food Finds');
-//   const [filteredFoodItems, setFilteredFoodItems] = useState([]);
-
-//   const foodItems = [
-//     { id: 1, title: 'Animal food', price: '25.00', rating: '8.4', image: '🍖', category: 'Food Finds' },
-//     { id: 2, title: 'Animal food', price: '19.99', rating: '9.4', image: '🥩', category: 'Food Finds' },
-//     { id: 3, title: 'Sugar Bugs', price: '12.50', rating: '7.8', image: '🍬', category: 'Vegetables' },
-//     { id: 4, title: 'Pizza Eater', price: '15.75', rating: '8.9', image: '🍕', category: 'Dizcary' },
-//     { id: 5, title: 'Fresh Carrots', price: '8.99', rating: '9.1', image: '🥕', category: 'Vegetables' },
-//     { id: 6, title: 'Magic Potion', price: '22.50', rating: '8.7', image: '🧪', category: 'Dizcary' },
-//   ];
-
-//   const categories = ['Food Finds', 'Vegetables', 'Dizcary'];
-
-//   // Filter food items based on active category
-//   const filterFoodItems = (category) => {
-//     if (category === 'Food Finds') {
-//       setFilteredFoodItems(foodItems);
-//     } else {
-//       const filtered = foodItems.filter(item => item.category === category);
-//       setFilteredFoodItems(filtered);
-//     }
-//   };
-
-//   // Initialize filtered items on component mount and when active category changes
-//   React.useEffect(() => {
-//     filterFoodItems(activeCategory);
-//   }, [activeCategory]);
-
-//   const handleNotificationPress = () => {
-//     console.log('Notification pressed');
-//   };
-
-//   const handleProfilePress = () => {
-//     navigation.navigate('Profile');
-//   };
-
-
-
-//   const handleViewItem = (item) => {
-//     navigation.navigate('foodDetails', { foodItem: item });
-
-//   };
-
-//   const handleCategoryPress = (category) => {
-//     setActiveCategory(category);
-//     filterFoodItems(category);
-//   };
-
-//   const CategoryTab = ({ title, isActive, onPress }) => (
-//     <TouchableOpacity
-//       style={[styles.categoryTab, isActive && styles.categoryTabActive]}
-//       onPress={onPress}
-//     >
-//       <Text
-//         style={[
-//           styles.categoryTabText,
-//           isActive && styles.categoryTabTextActive,
-//         ]}
-//       >
-//         {title}
-//       </Text>
-//     </TouchableOpacity>
-//   );
-
-//   return (
-//     <SafeAreaView style={styles.safeArea}>
-//       {/* Top Navbar */}
-//       <TopNavbar
-//         title="OrderUP"
-//         onNotificationPress={handleNotificationPress}
-//         onProfilePress={handleProfilePress}
-//       />
-
-//       {/* Main Scrollable Content */}
-//       <ScrollView
-//         style={styles.scrollView}
-//         showsVerticalScrollIndicator={false}
-//         contentContainerStyle={styles.scrollContent}
-//       >
-//         <View style={styles.searchSection}>
-//           <Text style={styles.mainTitle}>Find your food</Text>
-
-//           <View style={styles.searchContainer}>
-//             <TextInput
-//               style={styles.searchInput}
-//               placeholder="Search Food"
-//               placeholderTextColor="#888"
-//             />
-//           </View>
-
-//           <ScrollView
-//             horizontal
-//             showsHorizontalScrollIndicator={false}
-//             style={styles.categoriesScroll}
-//             contentContainerStyle={styles.categoriesContainer}
-//           >
-//             {categories.map((category) => (
-//               <CategoryTab
-//                 key={category}
-//                 title={category}
-//                 isActive={activeCategory === category}
-//                 onPress={() => handleCategoryPress(category)}
-//               />
-//             ))}
-//           </ScrollView>
-//         </View>
-
-//         <View style={styles.foodGrid}>
-//           {filteredFoodItems.map((item) => (
-//             <FoodCard 
-//               key={item.id} 
-//               item={item} 
-//               onPress={handleViewItem}
-//             />
-//           ))}
-//         </View>
-
-//         {/* Add bottom padding to prevent cutoff */}
-//         <View style={{ height: NAVBAR_HEIGHT + 40 }} />
-//       </ScrollView>
-
-//       {/* Fixed Bottom Navbar */}
-//       <View style={styles.bottomNavbarWrapper}>
-//         <SafeAreaView style={styles.bottomNavbarSafe}>
-//           <BottomNavbar navigation={navigation} />
-//         </SafeAreaView>
-//       </View>
-//     </SafeAreaView>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   safeArea: {
-//     flex: 1,
-//     backgroundColor: '#f8f9fa',
-//   },
-//   scrollView: {
-//     flex: 1,
-//   },
-//   scrollContent: {
-//     flexGrow: 1,
-//   },
-//   searchSection: {
-//     padding: width * 0.05,
-//     paddingTop: height * 0.02,
-//   },
-//   mainTitle: {
-//     fontSize: width * 0.07,
-//     fontWeight: 'bold',
-//     color: '#333',
-//     marginBottom: height * 0.02,
-//     textAlign: 'left',
-//   },
-//   searchContainer: {
-//     marginBottom: height * 0.02,
-//   },
-//   searchInput: {
-//     width: '100%',
-//     padding: height * 0.018,
-//     borderWidth: 1,
-//     borderColor: '#ddd',
-//     borderRadius: 12,
-//     fontSize: width * 0.04,
-//     backgroundColor: 'white',
-//     paddingHorizontal: width * 0.05,
-//   },
-//   categoriesScroll: {
-//     marginHorizontal: -width * 0.05,
-//   },
-//   categoriesContainer: {
-//     paddingHorizontal: width * 0.05,
-//     flexDirection: 'row',
-//     gap: width * 0.03,
-//   },
-//   categoryTab: {
-//     paddingHorizontal: width * 0.05,
-//     paddingVertical: height * 0.012,
-//     borderWidth: 1,
-//     borderColor: '#ddd',
-//     borderRadius: 20,
-//     backgroundColor: 'white',
-//     minWidth: width * 0.28,
-//     alignItems: 'center',
-//   },
-//   categoryTabActive: {
-//     backgroundColor: '#4caf50',
-//     borderColor: '#4caf50',
-//   },
-//   categoryTabText: {
-//     color: '#666',
-//     fontWeight: '600',
-//     fontSize: width * 0.035,
-//     textAlign: 'center',
-//   },
-//   categoryTabTextActive: {
-//     color: 'white',
-//   },
-//   foodGrid: {
-//     flexDirection: 'row',
-//     flexWrap: 'wrap',
-//     justifyContent: 'space-between',
-//     paddingHorizontal: width * 0.05,
-//     gap: width * 0.04,
-//   },
-
-//   // Fixed bottom navbar section
-//   bottomNavbarWrapper: {
-//     position: 'absolute',
-//     bottom: 0,
-//     left: 0,
-//     right: 0,
-//     backgroundColor: '#fff',
-//     elevation: 15,
-//     shadowColor: '#000',
-//     shadowOffset: { width: 0, height: -2 },
-//     shadowOpacity: 0.1,
-//     shadowRadius: 4,
-//   },
-//   bottomNavbarSafe: {
-//     paddingBottom: Platform.OS === 'ios' ? 20 : 10,
-//   },
-// });
-
-// export default Homepage;
-//////////////////////////////////////
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -255,60 +9,170 @@ import {
   Dimensions,
   SafeAreaView,
   Platform,
+  ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import BottomNavbar from '../Components/ButtomNavbar';
 import TopNavbar from '../Components/topNavbar';
-import FoodCard from '../Components/foodCard'; // Import the FoodCard component
+import FoodCard from '../Components/foodCard';
 
 const { width, height } = Dimensions.get('window');
-const NAVBAR_HEIGHT = 80; // approximate height of your bottom navbar
+const NAVBAR_HEIGHT = 80;
 
 const Homepage = ({ navigation }) => {
-  const [activeCategory, setActiveCategory] = useState('Food Finds');
+  const [activeCategory, setActiveCategory] = useState('All');
+  const [foodItems, setFoodItems] = useState([]);
   const [filteredFoodItems, setFilteredFoodItems] = useState([]);
-  const userName = "John"; // You can replace this with dynamic user data
+  const [userName, setUserName] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [apiLoading, setApiLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const foodItems = [
-    { id: 1, title: 'Animal food', price: '25.00', rating: '8.4', image: '🍖', category: 'Food Finds' },
-    { id: 2, title: 'Animal food', price: '19.99', rating: '9.4', image: '🥩', category: 'Food Finds' },
-    { id: 3, title: 'Sugar Bugs', price: '12.50', rating: '7.8', image: '🍬', category: 'Vegetables' },
-    { id: 4, title: 'Pizza Eater', price: '15.75', rating: '8.9', image: '🍕', category: 'Dizcary' },
-    { id: 5, title: 'Fresh Carrots', price: '8.99', rating: '9.1', image: '🥕', category: 'Vegetables' },
-    { id: 6, title: 'Magic Potion', price: '22.50', rating: '8.7', image: '🧪', category: 'Dizcary' },
-  ];
+  const categories = ['All', 'Breakfast', 'Lunch', 'Dinner'];
 
-  const categories = ['Food Finds', 'Vegetables', 'Dizcary'];
+  // Load user data from AsyncStorage
+  useEffect(() => {
+    loadUserData();
+    fetchFoodItems();
+  }, []);
 
-  // Filter food items based on active category
-  const filterFoodItems = (category) => {
-    if (category === 'Food Finds') {
-      setFilteredFoodItems(foodItems);
-    } else {
-      const filtered = foodItems.filter(item => item.category === category);
-      setFilteredFoodItems(filtered);
+  // Filter food items when category or search query changes
+  useEffect(() => {
+    filterFoodItems();
+  }, [activeCategory, foodItems, searchQuery]);
+
+  const loadUserData = async () => {
+    try {
+      const userData = await AsyncStorage.getItem('userData');
+      if (userData) {
+        const parsedData = JSON.parse(userData);
+        console.log('Loaded user data:', parsedData);
+        setUserName(parsedData.fullName || parsedData.name || 'User');
+      } else {
+        setUserName('User');
+      }
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      setUserName('User');
     }
   };
 
-  // Initialize filtered items on component mount and when active category changes
-  React.useEffect(() => {
-    filterFoodItems(activeCategory);
-  }, [activeCategory]);
+  const fetchFoodItems = async () => {
+    try {
+      setApiLoading(true);
+      const response = await fetch('http://192.168.1.3:3000/api/food-items');
 
-  const handleNotificationPress = () => {
-    console.log('Notification pressed');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Fetched food items:', data);
+      
+      // If the API returns an array directly
+      if (Array.isArray(data)) {
+        setFoodItems(data);
+      } 
+      // If the API returns an object with data property
+      else if (data.data && Array.isArray(data.data)) {
+        setFoodItems(data.data);
+      }
+      // If the API returns an object with items property
+      else if (data.items && Array.isArray(data.items)) {
+        setFoodItems(data.items);
+      }
+      else {
+        console.warn('Unexpected API response format:', data);
+        setFoodItems([]);
+      }
+    } catch (error) {
+      console.error('Error fetching food items:', error);
+      // Fallback to sample data if API fails
+      setFoodItems([
+        {
+          id: '1',
+          name: 'Grilled Salmon with Vegetables',
+          description: 'Tender salmon fillet served with steamed broccoli and carrots',
+          price: 18.99,
+          image: 'https://media.istockphoto.com/id/1214416414/photo/barbecued-salmon-fried-potatoes-and-vegetables-on-wooden-background.jpg?s=612x612&w=0&k=20&c=Y8RYbZFcvec-FXMMuoU-qkprC3TUFNiw3Ysoe8Drn6g=',
+          category: 'Dinner',
+          rating: 4.8,
+          calories: 470,
+          protein: '40g',
+          carbs: '8g',
+          fat: '28g'
+        },
+        {
+          id: '2',
+          name: 'Avocado Toast',
+          description: 'Fresh avocado on whole grain bread with cherry tomatoes',
+          price: 12.50,
+          image: '🥑',
+          category: 'Breakfast',
+          rating: 4.5,
+          calories: 320,
+          protein: '15g',
+          carbs: '35g',
+          fat: '18g'
+        },
+        {
+          id: '3',
+          name: 'Caesar Salad',
+          description: 'Fresh romaine lettuce with Caesar dressing and croutons',
+          price: 14.75,
+          image: '🥗',
+          category: 'Lunch',
+          rating: 4.3,
+          calories: 280,
+          protein: '12g',
+          carbs: '20g',
+          fat: '22g'
+        }
+      ]);
+    } finally {
+      setApiLoading(false);
+      setLoading(false);
+    }
   };
 
-  const handleProfilePress = () => {
-    navigation.navigate('Profile');
+  const filterFoodItems = () => {
+    let filtered = [...foodItems];
+
+    // Filter by category
+    if (activeCategory !== 'All') {
+      filtered = filtered.filter(item => 
+        item.category?.toLowerCase() === activeCategory.toLowerCase()
+      );
+    }
+
+    // Filter by search query
+    if (searchQuery.trim() !== '') {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item =>
+        item.name?.toLowerCase().includes(query) ||
+        item.description?.toLowerCase().includes(query) ||
+        item.category?.toLowerCase().includes(query)
+      );
+    }
+
+    setFilteredFoodItems(filtered);
+  };
+
+  const handleCategoryPress = (category) => {
+    setActiveCategory(category);
+  };
+
+  const handleSearchChange = (text) => {
+    setSearchQuery(text);
   };
 
   const handleViewItem = (item) => {
     navigation.navigate('foodDetails', { foodItem: item });
   };
 
-  const handleCategoryPress = (category) => {
-    setActiveCategory(category);
-    filterFoodItems(category);
+  const handleRefresh = () => {
+    fetchFoodItems();
   };
 
   const CategoryTab = ({ title, isActive, onPress }) => (
@@ -327,13 +191,27 @@ const Homepage = ({ navigation }) => {
     </TouchableOpacity>
   );
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#4caf50" />
+          <Text style={styles.loadingText}>Loading...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.safeArea}>
       {/* Top Navbar */}
       <TopNavbar
         title="OrderUP"
-        onNotificationPress={handleNotificationPress}
-        onProfilePress={handleProfilePress}
+        onNotificationPress={() => console.log('Notification pressed')}
+        onProfilePress={() => navigation.navigate('Profile')}
+        showRefresh={true}
+        onRefresh={handleRefresh}
+        refreshing={apiLoading}
       />
 
       {/* Main Scrollable Content */}
@@ -341,9 +219,17 @@ const Homepage = ({ navigation }) => {
         style={styles.scrollView}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={apiLoading}
+            onRefresh={handleRefresh}
+            colors={['#4caf50']}
+            tintColor="#4caf50"
+          />
+        }
       >
         <View style={styles.searchSection}>
-          {/* Updated greeting section */}
+          {/* Greeting section with dynamic user name */}
           <View style={styles.greetingContainer}>
             <Text style={styles.mainTitle}>Hi, </Text>
             <Text style={styles.userName}>{userName}</Text>
@@ -356,6 +242,8 @@ const Homepage = ({ navigation }) => {
               style={styles.searchInput}
               placeholder="Search Food"
               placeholderTextColor="#888"
+              value={searchQuery}
+              onChangeText={handleSearchChange}
             />
           </View>
 
@@ -376,15 +264,44 @@ const Homepage = ({ navigation }) => {
           </ScrollView>
         </View>
 
-        <View style={styles.foodGrid}>
-          {filteredFoodItems.map((item) => (
-            <FoodCard 
-              key={item.id} 
-              item={item} 
-              onPress={handleViewItem}
-            />
-          ))}
-        </View>
+        {/* Food Items Grid */}
+        {apiLoading ? (
+          <View style={styles.loadingFoodContainer}>
+            <ActivityIndicator size="large" color="#4caf50" />
+            <Text style={styles.loadingFoodText}>Loading food items...</Text>
+          </View>
+        ) : filteredFoodItems.length > 0 ? (
+          <View style={styles.foodGrid}>
+            {filteredFoodItems.map((item) => (
+              <FoodCard 
+                key={item.id} 
+                item={{
+                  id: item.id,
+                  title: item.name,
+                  price: item.price.toString(),
+                  rating: item.rating?.toString() || '4.5',
+                  image: item.image,
+                  category: item.category,
+                  description: item.description
+                }} 
+                onPress={handleViewItem}
+              />
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No food items found</Text>
+            <Text style={styles.emptySubtext}>
+              {searchQuery ? 'Try adjusting your search' : `No ${activeCategory !== 'All' ? activeCategory : ''} items available`}
+            </Text>
+            <TouchableOpacity 
+              style={styles.retryButton}
+              onPress={handleRefresh}
+            >
+              <Text style={styles.retryButtonText}>Refresh</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Add bottom padding to prevent cutoff */}
         <View style={{ height: NAVBAR_HEIGHT + 40 }} />
@@ -404,6 +321,16 @@ const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 20,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: '#666',
   },
   scrollView: {
     flex: 1,
@@ -429,7 +356,7 @@ const styles = StyleSheet.create({
   userName: {
     fontSize: width * 0.07,
     fontWeight: 'bold',
-    color: '#4caf50', // Green color for the name
+    color: '#4caf50',
     textAlign: 'left',
   },
   subTitle: {
@@ -489,8 +416,42 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.05,
     gap: width * 0.04,
   },
-
-  // Fixed bottom navbar section
+  loadingFoodContainer: {
+    padding: 40,
+    alignItems: 'center',
+    gap: 15,
+  },
+  loadingFoodText: {
+    fontSize: 16,
+    color: '#666',
+  },
+  emptyContainer: {
+    padding: 40,
+    alignItems: 'center',
+    gap: 15,
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#666',
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#999',
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: '#4caf50',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginTop: 10,
+  },
+  retryButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '600',
+  },
   bottomNavbarWrapper: {
     position: 'absolute',
     bottom: 0,

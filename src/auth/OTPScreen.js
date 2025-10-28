@@ -8,17 +8,23 @@ import {
   ImageBackground,
   SafeAreaView,
   Alert,
+  Modal,
+  Dimensions,
 } from "react-native";
 
-// Use the same API base URL
-const API_BASE_URL = "http://192.168.1.100:3000/api"; // Change this to your computer's IP
+const { width, height } = Dimensions.get("window");
+
+const API_BASE_URL = "http://192.168.1.3:3000/api";
 
 export default function OTPScreen({ navigation, route }) {
-  const [otp, setOtp] = useState(["", "", "", ""]);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [loading, setLoading] = useState(false);
-  const email = route.params?.email || "";
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const phoneNumber = route.params?.phoneNumber || "";
   
   const inputRefs = [
+    useRef(null),
+    useRef(null),
     useRef(null),
     useRef(null),
     useRef(null),
@@ -32,7 +38,7 @@ export default function OTPScreen({ navigation, route }) {
       setOtp(newOtp);
 
       // Auto-focus next input
-      if (value && index < 3) {
+      if (value && index < 5) {
         inputRefs[index + 1].current.focus();
       }
       
@@ -46,50 +52,42 @@ export default function OTPScreen({ navigation, route }) {
   const handleVerify = async () => {
     const otpString = otp.join("");
     
-    if (otpString.length !== 4) {
-      Alert.alert("Error", "Please enter the complete 4-digit OTP");
+    if (otpString.length !== 6) {
+      Alert.alert("Error", "Please enter the complete 6-digit OTP");
       return;
     }
 
-    if (!email) {
-      Alert.alert("Error", "Email not found. Please sign up again.");
+    if (!phoneNumber) {
+      Alert.alert("Error", "Phone number not found. Please sign up again.");
       return;
     }
 
     setLoading(true);
     try {
-      console.log("Verifying OTP...");
+      console.log("Verifying OTP for phone:", phoneNumber);
       const response = await fetch(`${API_BASE_URL}/verify-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          email: email,
+          phoneNumber: phoneNumber,
           otp: otpString,
         }),
       });
 
       console.log("Response status:", response.status);
       
-      let data;
-      try {
-        data = await response.json();
-        console.log("Response data:", data);
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        throw new Error("Invalid server response");
-      }
+      const data = await response.json();
+      console.log("Response data:", data);
 
       if (response.ok) {
-        Alert.alert("Success", "OTP verified successfully! Your account has been created.");
-        // Navigate to HomePage after successful OTP verification
-        navigation.navigate("HomePage");
+        setShowSuccessModal(true);
       } else {
-        Alert.alert("Error", data.message || "OTP verification failed");
+        Alert.alert("Verification Failed", data.error || "Invalid OTP. Please try again.");
       }
     } catch (error) {
-      console.error("OTP verification error details:", error);
+      console.error("OTP verification error:", error);
       Alert.alert(
         "Network Error", 
         `Cannot connect to server. Please check your connection and try again.\n\nError: ${error.message}`
@@ -99,41 +97,42 @@ export default function OTPScreen({ navigation, route }) {
     }
   };
 
+  const handleContinue = () => {
+    setShowSuccessModal(false);
+    navigation.navigate("HomePage");
+  };
+
   const handleResendOtp = async () => {
-    if (!email) {
-      Alert.alert("Error", "Email not found. Please go back and sign up again.");
+    if (!phoneNumber) {
+      Alert.alert("Error", "Phone number not found. Please go back and sign up again.");
       return;
     }
 
     setLoading(true);
     try {
-      console.log("Resending OTP...");
+      console.log("Resending OTP to phone:", phoneNumber);
       const response = await fetch(`${API_BASE_URL}/resend-otp`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ phoneNumber }),
       });
 
       console.log("Response status:", response.status);
       
-      let data;
-      try {
-        data = await response.json();
-        console.log("Response data:", data);
-      } catch (parseError) {
-        console.error("JSON parse error:", parseError);
-        throw new Error("Invalid server response");
-      }
+      const data = await response.json();
+      console.log("Response data:", data);
 
       if (response.ok) {
-        Alert.alert("Success", "OTP has been resent to your email.");
+        Alert.alert("Success", "OTP has been resent to your phone number.");
+        setOtp(["", "", "", "", "", ""]);
+        inputRefs[0].current.focus();
       } else {
-        Alert.alert("Error", data.message || "Failed to resend OTP");
+        Alert.alert("Error", data.error || "Failed to resend OTP");
       }
     } catch (error) {
-      console.error("Resend OTP error details:", error);
+      console.error("Resend OTP error:", error);
       Alert.alert(
         "Network Error", 
         `Cannot connect to server. Please check your connection and try again.\n\nError: ${error.message}`
@@ -141,6 +140,19 @@ export default function OTPScreen({ navigation, route }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const clearOtp = () => {
+    setOtp(["", "", "", "", "", ""]);
+    inputRefs[0].current.focus();
+  };
+
+  // Format phone number for display
+  const formatPhoneNumber = (phone) => {
+    if (phone.length === 10) {
+      return `(${phone.substring(0, 3)}) ${phone.substring(3, 6)}-${phone.substring(6)}`;
+    }
+    return phone;
   };
 
   return (
@@ -153,14 +165,14 @@ export default function OTPScreen({ navigation, route }) {
       
       <SafeAreaView style={styles.container}>
         <View style={styles.card}>
-          <Text style={styles.title}>Enter OTP</Text>
+          <Text style={styles.title}>Enter Verification Code</Text>
           <Text style={styles.subtitle}>
-            We've sent a 4-digit code to your email. Enter it below to verify.
+            We've sent a 6-digit verification code to your phone number
           </Text>
-          <Text style={styles.emailText}>{email}</Text>
+          <Text style={styles.phoneText}>{formatPhoneNumber(phoneNumber)}</Text>
           
           <View style={styles.otpContainer}>
-            {[0, 1, 2, 3].map((index) => (
+            {[0, 1, 2, 3, 4, 5].map((index) => (
               <TextInput 
                 key={index} 
                 ref={inputRefs[index]}
@@ -170,9 +182,17 @@ export default function OTPScreen({ navigation, route }) {
                 value={otp[index]}
                 onChangeText={(value) => handleOtpChange(value, index)}
                 selectTextOnFocus
-                color="#000" // Ensure black text
+                color="#000"
               />
             ))}
+          </View>
+
+          <View style={styles.otpActions}>
+            <TouchableOpacity onPress={clearOtp} disabled={loading}>
+              <Text style={[styles.actionText, loading && styles.actionTextDisabled]}>
+                Clear
+              </Text>
+            </TouchableOpacity>
           </View>
           
           <TouchableOpacity 
@@ -181,16 +201,20 @@ export default function OTPScreen({ navigation, route }) {
             disabled={loading}
           >
             <Text style={styles.buttonText}>
-              {loading ? "Verifying..." : "Verify"}
+              {loading ? "Verifying..." : "Verify Code"}
             </Text>
           </TouchableOpacity>
           
           <View style={styles.linksContainer}>
             <TouchableOpacity onPress={handleResendOtp} disabled={loading}>
-              <Text style={[styles.link, loading && styles.linkDisabled]}>Resend OTP</Text>
+              <Text style={[styles.link, loading && styles.linkDisabled]}>
+                Resend Code
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={() => navigation.goBack()} disabled={loading}>
-              <Text style={[styles.link, loading && styles.linkDisabled]}>Change Email</Text>
+              <Text style={[styles.link, loading && styles.linkDisabled]}>
+                Change Phone Number
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -199,6 +223,38 @@ export default function OTPScreen({ navigation, route }) {
         <View style={styles.footer}>
           <Text style={styles.footerText}>🌿 Fresh & Healthy</Text>
         </View>
+
+        {/* Success Modal */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={showSuccessModal}
+          onRequestClose={() => setShowSuccessModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <View style={styles.successIcon}>
+                  <Text style={styles.successIconText}>✓</Text>
+                </View>
+                
+                <Text style={styles.modalTitle}>Registration Successful!</Text>
+                
+                <Text style={styles.modalMessage}>
+                  Your account has been successfully created and verified. 
+                  You can now enjoy all the features of our app.
+                </Text>
+                
+                <TouchableOpacity 
+                  style={styles.continueButton}
+                  onPress={handleContinue}
+                >
+                  <Text style={styles.continueButtonText}>Continue to Home</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </ImageBackground>
   );
@@ -244,7 +300,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     lineHeight: 20,
   },
-  emailText: {
+  phoneText: {
     fontSize: 14,
     color: "#39B54A",
     textAlign: "center",
@@ -254,19 +310,31 @@ const styles = StyleSheet.create({
   otpContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 30,
+    marginBottom: 15,
   },
   otpInput: {
-    width: 60,
-    height: 60,
+    width: 45,
+    height: 55,
     backgroundColor: "#F3F3F3",
     borderRadius: 12,
     textAlign: "center",
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "bold",
     borderWidth: 1,
     borderColor: "#E0E0E0",
-    color: "#000", // Black text for OTP inputs
+    color: "#000",
+  },
+  otpActions: {
+    alignItems: "flex-end",
+    marginBottom: 20,
+  },
+  actionText: {
+    color: "#39B54A",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  actionTextDisabled: {
+    color: "#cccccc",
   },
   button: {
     backgroundColor: "#39B54A",
@@ -301,6 +369,74 @@ const styles = StyleSheet.create({
   footerText: {
     color: "#fff",
     fontSize: 18,
+    fontWeight: "bold",
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContainer: {
+    width: "90%",
+    maxWidth: 400,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 0,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalContent: {
+    padding: 30,
+    alignItems: "center",
+  },
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#39B54A",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  successIconText: {
+    color: "white",
+    fontSize: 36,
+    fontWeight: "bold",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#39B54A",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 25,
+    lineHeight: 22,
+  },
+  continueButton: {
+    backgroundColor: "#39B54A",
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    alignItems: "center",
+    width: "100%",
+  },
+  continueButtonText: {
+    color: "white",
+    fontSize: 16,
     fontWeight: "bold",
   },
 });

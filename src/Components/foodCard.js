@@ -1,5 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Dimensions, 
+  Image 
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
@@ -11,20 +18,52 @@ const FoodCard = ({ item, onPress }) => {
     if (onPress) {
       onPress(item);
     } else {
-      // Navigate to FoodDetails screen with the item data
       navigation.navigate('foodDetails', { 
         foodItem: item 
       });
     }
   };
 
+  // Check if the image is a URL or emoji
+  const isImageUrl = (image) => {
+    return typeof image === 'string' && 
+           (image.startsWith('http') || image.startsWith('https'));
+  };
+
+  const isEmoji = (image) => {
+    return typeof image === 'string' && image.length <= 3;
+  };
+
   return (
     <TouchableOpacity style={styles.foodCard} onPress={handlePress}>
       <View style={styles.cardImage}>
-        <Text style={styles.foodEmoji}>{item.image}</Text>
+        {isImageUrl(item.image) ? (
+          <Image
+            source={{ uri: item.image }}
+            style={styles.foodImage}
+            resizeMode="cover"
+            onError={(error) => {
+              console.log('Image load error:', error.nativeEvent.error);
+              // Fallback to emoji if image fails to load
+              return (
+                <View style={styles.imageFallback}>
+                  <Text style={styles.foodEmoji}>🍽️</Text>
+                </View>
+              );
+            }}
+          />
+        ) : isEmoji(item.image) ? (
+          <Text style={styles.foodEmoji}>{item.image}</Text>
+        ) : (
+          <View style={styles.imageFallback}>
+            <Text style={styles.foodEmoji}>🍽️</Text>
+          </View>
+        )}
       </View>
       <View style={styles.cardContent}>
-        <Text style={styles.foodTitle}>{item.title}</Text>
+        <Text style={styles.foodTitle} numberOfLines={1}>
+          {item.title || item.name}
+        </Text>
         <View style={styles.cardDetails}>
           <Text style={styles.foodPrice}>${item.price}</Text>
           <View style={styles.ratingContainer}>
@@ -65,9 +104,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    overflow: 'hidden',
+  },
+  foodImage: {
+    width: '100%',
+    height: '100%',
   },
   foodEmoji: {
     fontSize: width * 0.08,
+  },
+  imageFallback: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
   },
   cardContent: {
     padding: width * 0.04,

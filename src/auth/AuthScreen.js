@@ -11,18 +11,20 @@ import {
   ImageBackground,
   SafeAreaView,
   Alert,
+  Modal,
 } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get("window");
 
-// Use your computer's IP address instead of localhost
-// Replace 'YOUR_COMPUTER_IP' with your actual IP address
-const API_BASE_URL = "http://192.168.1.3:3000/api"; // Change this to your computer's IP
+const API_BASE_URL = "http://192.168.1.3:3000/api";
 
 export default function AuthScreen({ navigation }) {
   const animation = useRef(new Animated.Value(0)).current;
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
   
   // Form states
   const [loginData, setLoginData] = useState({
@@ -58,7 +60,6 @@ export default function AuthScreen({ navigation }) {
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(loginData.email)) {
       Alert.alert("Error", "Please enter a valid email address");
@@ -67,7 +68,11 @@ export default function AuthScreen({ navigation }) {
 
     setLoading(true);
     try {
-      console.log("Attempting login...");
+      console.log("Attempting login with:", {
+        email: loginData.email.trim().toLowerCase(),
+        passwordLength: loginData.password.length
+      });
+
       const response = await fetch(`${API_BASE_URL}/login`, {
         method: "POST",
         headers: {
@@ -81,20 +86,40 @@ export default function AuthScreen({ navigation }) {
 
       console.log("Response status:", response.status);
       
+      const responseText = await response.text();
+      console.log("Raw response:", responseText);
+
       let data;
       try {
-        data = await response.json();
-        console.log("Response data:", data);
+        data = JSON.parse(responseText);
+        console.log("Parsed data:", data);
       } catch (parseError) {
         console.error("JSON parse error:", parseError);
         throw new Error("Invalid server response");
       }
 
       if (response.ok) {
-        Alert.alert("Success", "Login successful!");
-        // Navigate to HomePage after successful login
-        navigation.navigate("HomePage");
+        console.log("Login successful, token received:", data.token ? "Yes" : "No");
+        
+        // Store user data in AsyncStorage
+        try {
+          const userData = {
+            fullName: data.user?.fullName || data.user?.name || "User",
+            email: data.user?.email || loginData.email,
+            phoneNumber: data.user?.phoneNumber || "",
+            token: data.token
+          };
+          
+          await AsyncStorage.setItem('userData', JSON.stringify(userData));
+          console.log('User data stored from login:', userData);
+        } catch (storageError) {
+          console.error('Error storing user data:', storageError);
+        }
+        
+        setSuccessMessage("Login successful!");
+        setShowSuccessModal(true);
       } else {
+        console.log("Login failed with message:", data.message);
         Alert.alert("Error", data.message || "Login failed. Please check your credentials.");
       }
     } catch (error) {
@@ -110,27 +135,23 @@ export default function AuthScreen({ navigation }) {
 
   // Handle signup
   const handleSignup = async () => {
-    // Validate all fields
     if (!signupData.fullName || !signupData.email || !signupData.phoneNumber || !signupData.password || !signupData.confirmPassword) {
       Alert.alert("Error", "Please fill in all fields");
       return;
     }
 
-    // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(signupData.email)) {
       Alert.alert("Error", "Please enter a valid email address");
       return;
     }
 
-    // Phone validation (basic)
     const phoneRegex = /^[0-9+\-\s()]{10,}$/;
     if (!phoneRegex.test(signupData.phoneNumber)) {
       Alert.alert("Error", "Please enter a valid phone number");
       return;
     }
 
-    // Password validation
     if (signupData.password.length < 6) {
       Alert.alert("Error", "Password must be at least 6 characters long");
       return;
@@ -169,9 +190,27 @@ export default function AuthScreen({ navigation }) {
       }
 
       if (response.ok) {
+        // Store user data in AsyncStorage after signup
+        try {
+          const userData = {
+            fullName: signupData.fullName,
+            email: signupData.email,
+            phoneNumber: signupData.phoneNumber
+          };
+          
+          await AsyncStorage.setItem('userData', JSON.stringify(userData));
+          console.log('User data stored after signup:', userData);
+        } catch (storageError) {
+          console.error('Error storing user data:', storageError);
+        }
+        
         Alert.alert("Success", "Registration successful! Please verify your OTP.");
         // Navigate to OTP screen after successful registration
-        navigation.navigate("OTPScreen", { email: signupData.email });
+        navigation.navigate("OTP", { 
+          phoneNumber: signupData.phoneNumber,
+          fullName: signupData.fullName,
+          email: signupData.email
+        });
       } else {
         Alert.alert("Error", data.message || "Registration failed. Please try again.");
       }
@@ -184,6 +223,11 @@ export default function AuthScreen({ navigation }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleContinue = () => {
+    setShowSuccessModal(false);
+    navigation.navigate("HomePage");
   };
 
   // Update login form data
@@ -355,6 +399,37 @@ export default function AuthScreen({ navigation }) {
         <View style={styles.footer}>
           <Text style={styles.footerText}>🌿 Fresh & Healthy</Text>
         </View>
+
+        {/* Login Success Modal */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={showSuccessModal}
+          onRequestClose={() => setShowSuccessModal(false)}
+        >
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContainer}>
+              <View style={styles.modalContent}>
+                <View style={styles.successIcon}>
+                  <Text style={styles.successIconText}>✓</Text>
+                </View>
+                
+                <Text style={styles.modalTitle}>Login Successful!</Text>
+                
+                <Text style={styles.modalMessage}>
+                  {successMessage} Welcome back to OrderUP!
+                </Text>
+                
+                <TouchableOpacity 
+                  style={styles.continueButton}
+                  onPress={handleContinue}
+                >
+                  <Text style={styles.continueButtonText}>Continue to Home</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </SafeAreaView>
     </ImageBackground>
   );
@@ -443,7 +518,7 @@ const styles = StyleSheet.create({
     borderColor: "#E0E0E0",
     width: "100%",
     alignSelf: "center",
-    color: "#000", // This ensures text is black
+    color: "#000",
   },
   button: {
     backgroundColor: "#39B54A",
@@ -476,6 +551,74 @@ const styles = StyleSheet.create({
   footerText: {
     color: "#fff",
     fontSize: 18,
+    fontWeight: "bold",
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContainer: {
+    width: "90%",
+    maxWidth: 400,
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 0,
+    elevation: 10,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+  },
+  modalContent: {
+    padding: 30,
+    alignItems: "center",
+  },
+  successIcon: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#39B54A",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  successIconText: {
+    color: "white",
+    fontSize: 36,
+    fontWeight: "bold",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: "#39B54A",
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  modalMessage: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 25,
+    lineHeight: 22,
+  },
+  continueButton: {
+    backgroundColor: "#39B54A",
+    borderRadius: 12,
+    paddingVertical: 15,
+    paddingHorizontal: 30,
+    alignItems: "center",
+    width: "100%",
+  },
+  continueButtonText: {
+    color: "white",
+    fontSize: 16,
     fontWeight: "bold",
   },
 });

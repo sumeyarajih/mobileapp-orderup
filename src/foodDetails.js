@@ -11,16 +11,16 @@ import {
   StatusBar,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const FoodDetails = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const [quantity, setQuantity] = useState(1);
+  const [addingToCart, setAddingToCart] = useState(false);
 
-  // ✅ Safely extract foodItem from first code
   const { foodItem } = route.params || {};
 
-  // ✅ Prevent crash if foodItem is missing (from first code)
   if (!foodItem) {
     return (
       <SafeAreaView style={styles.container}>
@@ -44,15 +44,14 @@ const FoodDetails = () => {
     );
   }
 
-  // ✅ Convert price to number safely (from first code)
   const price = parseFloat(foodItem.price) || 0;
   const totalPrice = (price * quantity).toFixed(2);
 
-  // ✅ Use proper field names from first code (name, image, rating, description)
   const foodName = foodItem.name || foodItem.title || 'Food Item';
   const foodImage = foodItem.image;
   const foodRating = foodItem.rating || '4.5';
-  const foodDescription = foodItem.description || 'This is a delicious item from our menu.';
+  const foodDescription = foodItem.description || 'No description available.';
+  const foodCategory = foodItem.category || 'Uncategorized';
 
   const decreaseQuantity = () => {
     if (quantity > 1) {
@@ -64,28 +63,83 @@ const FoodDetails = () => {
     setQuantity(quantity + 1);
   };
 
-  const addToCart = () => {
-    Alert.alert(
-      'Added to Cart',
-      `Added ${quantity} ${foodName}(s) to cart for $${totalPrice}`,
-      [
-        {
-          text: 'Continue Shopping',
-          onPress: () => navigation.goBack(),
+  const addToCart = async () => {
+    try {
+      setAddingToCart(true);
+      
+      // Get user token from AsyncStorage
+      const userData = await AsyncStorage.getItem('userData');
+      if (!userData) {
+        Alert.alert('Error', 'Please login to add items to cart');
+        navigation.navigate('Login');
+        return;
+      }
+
+      const parsedData = JSON.parse(userData);
+      const token = parsedData.token;
+
+      if (!token) {
+        Alert.alert('Error', 'Please login to add items to cart');
+        navigation.navigate('Login');
+        return;
+      }
+
+      // Call the add to cart API
+      const response = await fetch('http://192.168.1.3:3000/api/cart', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
         },
-        {
-          text: 'View Cart',
-          onPress: () => navigation.navigate('Cart'),
-        },
-      ]
-    );
+        body: JSON.stringify({
+          foodItemId: foodItem.id,
+          quantity: quantity
+        })
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        Alert.alert(
+          'Added to Cart',
+          `Added ${quantity} ${foodName}(s) to cart for $${totalPrice}`,
+          [
+            {
+              text: 'Continue Shopping',
+              onPress: () => navigation.goBack(),
+            },
+            {
+              text: 'View Cart',
+              onPress: () => navigation.navigate('Cart'),
+            },
+          ]
+        );
+      } else {
+        Alert.alert('Error', result.message || 'Failed to add item to cart');
+      }
+    } catch (error) {
+      console.error('Add to cart error:', error);
+      Alert.alert('Error', 'Failed to add item to cart. Please try again.');
+    } finally {
+      setAddingToCart(false);
+    }
+  };
+
+  // Check if image is a URL or emoji
+  const isImageUrl = (image) => {
+    return typeof image === 'string' && 
+           (image.startsWith('http') || image.startsWith('https'));
+  };
+
+  const isEmoji = (image) => {
+    return typeof image === 'string' && image.length <= 3;
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#2e7d32" />
       
-      {/* Header - From second code */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity 
           style={styles.backButton}
@@ -102,37 +156,43 @@ const FoodDetails = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollViewContent}
       >
-        {/* Food Image - Combined approach */}
+        {/* Food Image */}
         <View style={styles.foodImageContainer}>
-          {typeof foodImage === 'string' && foodImage.length <= 3 ? (
-            // If it's an emoji (from second code)
-            <Text style={styles.foodEmoji}>{foodImage}</Text>
-          ) : (
-            // If it's an image source (from first code)
+          {isImageUrl(foodImage) ? (
             <Image
-              source={foodImage}
+              source={{ uri: foodImage }}
               style={styles.foodImage}
               resizeMode="cover"
             />
+          ) : isEmoji(foodImage) ? (
+            <Text style={styles.foodEmoji}>{foodImage}</Text>
+          ) : (
+            <View style={styles.foodImagePlaceholder}>
+              <Text style={styles.foodImagePlaceholderText}>🍽️</Text>
+              <Text style={styles.foodImagePlaceholderSubtext}>No Image</Text>
+            </View>
           )}
         </View>
 
-        {/* Food Info - Combined design */}
+        {/* Food Info */}
         <View style={styles.foodInfo}>
           <View style={styles.titleRow}>
             <Text style={styles.foodTitle}>{foodName}</Text>
             <Text style={styles.foodPrice}>${price.toFixed(2)}</Text>
           </View>
 
-          {/* Rating - Combined approach */}
-          <View style={styles.ratingSection}>
+          {/* Category and Rating */}
+          <View style={styles.metaInfo}>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>{foodCategory}</Text>
+            </View>
             <View style={styles.ratingContainer}>
               <Text style={styles.ratingStar}>⭐</Text>
               <Text style={styles.foodRating}>{foodRating}</Text>
             </View>
           </View>
 
-          {/* Description - Combined approach */}
+          {/* Description */}
           <View style={styles.description}>
             <Text style={styles.descriptionTitle}>Description</Text>
             <Text style={styles.descriptionText}>
@@ -140,42 +200,40 @@ const FoodDetails = () => {
             </Text>
           </View>
 
-          {/* Ingredients (Sample) - From second code */}
-          <View style={styles.ingredients}>
-            <Text style={styles.ingredientsTitle}>Ingredients</Text>
-            <View style={styles.ingredientsList}>
-              <Text style={styles.ingredient}>• Fresh Ingredients</Text>
-              <Text style={styles.ingredient}>• Premium Quality</Text>
-              <Text style={styles.ingredient}>• Natural Flavors</Text>
-              <Text style={styles.ingredient}>• Healthy Options</Text>
-              <Text style={styles.ingredient}>• Chef Prepared</Text>
-            </View>
-          </View>
-
-          {/* Nutrition Info (Sample) - Enhanced from second code */}
-          <View style={styles.nutrition}>
-            <Text style={styles.nutritionTitle}>Nutrition Information</Text>
-            <View style={styles.nutritionGrid}>
-              <View style={styles.nutritionItem}>
-                <Text style={styles.nutritionValue}>320</Text>
-                <Text style={styles.nutritionLabel}>Calories</Text>
-              </View>
-              <View style={styles.nutritionItem}>
-                <Text style={styles.nutritionValue}>25g</Text>
-                <Text style={styles.nutritionLabel}>Protein</Text>
-              </View>
-              <View style={styles.nutritionItem}>
-                <Text style={styles.nutritionValue}>18g</Text>
-                <Text style={styles.nutritionLabel}>Carbs</Text>
-              </View>
-              <View style={styles.nutritionItem}>
-                <Text style={styles.nutritionValue}>22g</Text>
-                <Text style={styles.nutritionLabel}>Fat</Text>
+          {/* Nutrition Information - Show real data if available */}
+          {(foodItem.calories || foodItem.protein || foodItem.carbs || foodItem.fat) && (
+            <View style={styles.nutrition}>
+              <Text style={styles.nutritionTitle}>Nutrition Information</Text>
+              <View style={styles.nutritionGrid}>
+                {foodItem.calories && (
+                  <View style={styles.nutritionItem}>
+                    <Text style={styles.nutritionValue}>{foodItem.calories}</Text>
+                    <Text style={styles.nutritionLabel}>Calories</Text>
+                  </View>
+                )}
+                {foodItem.protein && (
+                  <View style={styles.nutritionItem}>
+                    <Text style={styles.nutritionValue}>{foodItem.protein}</Text>
+                    <Text style={styles.nutritionLabel}>Protein</Text>
+                  </View>
+                )}
+                {foodItem.carbs && (
+                  <View style={styles.nutritionItem}>
+                    <Text style={styles.nutritionValue}>{foodItem.carbs}</Text>
+                    <Text style={styles.nutritionLabel}>Carbs</Text>
+                  </View>
+                )}
+                {foodItem.fat && (
+                  <View style={styles.nutritionItem}>
+                    <Text style={styles.nutritionValue}>{foodItem.fat}</Text>
+                    <Text style={styles.nutritionLabel}>Fat</Text>
+                  </View>
+                )}
               </View>
             </View>
-          </View>
+          )}
 
-          {/* Quantity Selector - Combined functionality */}
+          {/* Quantity Selector */}
           <View style={styles.quantitySection}>
             <Text style={styles.quantityLabel}>Quantity</Text>
             <View style={styles.quantitySelector}>
@@ -196,7 +254,7 @@ const FoodDetails = () => {
             </View>
           </View>
 
-          {/* Total Price - Combined approach */}
+          {/* Total Price */}
           <View style={styles.totalSection}>
             <Text style={styles.totalLabel}>Total</Text>
             <Text style={styles.totalPrice}>${totalPrice}</Text>
@@ -204,13 +262,16 @@ const FoodDetails = () => {
         </View>
       </ScrollView>
 
-      {/* Add to Cart Button - Fixed to be fully visible */}
+      {/* Add to Cart Button */}
       <View style={styles.footer}>
         <TouchableOpacity 
-          style={styles.addToCartButton}
+          style={[styles.addToCartButton, addingToCart && styles.addToCartButtonDisabled]}
           onPress={addToCart}
+          disabled={addingToCart}
         >
-          <Text style={styles.addToCartButtonText}>Add to Cart - ${totalPrice}</Text>
+          <Text style={styles.addToCartButtonText}>
+            {addingToCart ? 'Adding to Cart...' : `Add to Cart - $${totalPrice}`}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -262,7 +323,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollViewContent: {
-    paddingBottom: 120, // Increased padding to ensure content scrolls above the button
+    paddingBottom: 120,
   },
   foodImageContainer: {
     height: 250,
@@ -276,6 +337,18 @@ const styles = StyleSheet.create({
   foodImage: {
     width: '100%',
     height: '100%',
+  },
+  foodImagePlaceholder: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  foodImagePlaceholderText: {
+    fontSize: 60,
+    marginBottom: 10,
+  },
+  foodImagePlaceholderSubtext: {
+    fontSize: 16,
+    color: '#666',
   },
   foodInfo: {
     padding: 20,
@@ -300,8 +373,22 @@ const styles = StyleSheet.create({
     color: '#2e7d32',
     fontWeight: '700',
   },
-  ratingSection: {
+  metaInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 20,
+  },
+  categoryBadge: {
+    backgroundColor: '#e3f2fd',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+  },
+  categoryText: {
+    color: '#1976d2',
+    fontSize: 14,
+    fontWeight: '600',
   },
   ratingContainer: {
     flexDirection: 'row',
@@ -310,7 +397,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    alignSelf: 'flex-start',
   },
   ratingStar: {
     fontSize: 16,
@@ -334,27 +420,6 @@ const styles = StyleSheet.create({
     color: '#666',
     lineHeight: 22,
     fontSize: 15,
-  },
-  ingredients: {
-    marginBottom: 25,
-  },
-  ingredientsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 12,
-    color: '#333',
-  },
-  ingredientsList: {
-    backgroundColor: '#f8f9fa',
-    padding: 15,
-    borderRadius: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: '#2e7d32',
-  },
-  ingredient: {
-    color: '#666',
-    marginBottom: 6,
-    fontSize: 14,
   },
   nutrition: {
     marginBottom: 25,
@@ -470,7 +535,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: -2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    paddingBottom: 30, // Extra padding for devices with bottom notch
+    paddingBottom: 30,
   },
   addToCartButton: {
     backgroundColor: '#2e7d32',
@@ -482,6 +547,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
+  },
+  addToCartButtonDisabled: {
+    backgroundColor: '#cccccc',
   },
   addToCartButtonText: {
     color: 'white',
