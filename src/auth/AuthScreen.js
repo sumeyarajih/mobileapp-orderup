@@ -17,7 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width } = Dimensions.get("window");
 
-const API_BASE_URL = "http://192.168.1.3:3000/api";
+const API_BASE_URL = "http://192.168.1.2:3000/api";
 
 export default function AuthScreen({ navigation }) {
   const animation = useRef(new Animated.Value(0)).current;
@@ -101,17 +101,27 @@ export default function AuthScreen({ navigation }) {
       if (response.ok) {
         console.log("Login successful, token received:", data.token ? "Yes" : "No");
         
-        // Store user data in AsyncStorage
+        // Store user data and token SEPARATELY in AsyncStorage
         try {
           const userData = {
             fullName: data.user?.fullName || data.user?.name || "User",
             email: data.user?.email || loginData.email,
             phoneNumber: data.user?.phoneNumber || "",
-            token: data.token
           };
           
+          // Store user data and token in separate keys
           await AsyncStorage.setItem('userData', JSON.stringify(userData));
-          console.log('User data stored from login:', userData);
+          await AsyncStorage.setItem('userToken', data.token);
+          
+          console.log('✅ User data stored from login:', userData);
+          console.log('✅ Token stored separately');
+          
+          // Debug: Verify storage
+          const storedUserData = await AsyncStorage.getItem('userData');
+          const storedToken = await AsyncStorage.getItem('userToken');
+          console.log('🔍 Verification - Stored userData:', storedUserData);
+          console.log('🔍 Verification - Stored token:', storedToken ? 'Yes' : 'No');
+          
         } catch (storageError) {
           console.error('Error storing user data:', storageError);
         }
@@ -227,11 +237,16 @@ export default function AuthScreen({ navigation }) {
 
   const handleContinue = () => {
     setShowSuccessModal(false);
-    navigation.navigate("HomePage");
+    // Use reset to prevent going back to login
+    navigation.reset({
+      index: 0,
+      routes: [{ name: 'HomePage' }],
+    });
   };
 
   // Update login form data
   const updateLoginData = (field, value) => {
+
     setLoginData(prev => ({
       ...prev,
       [field]: value

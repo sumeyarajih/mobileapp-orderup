@@ -9,9 +9,12 @@ import {
   Alert,
   SafeAreaView,
   StatusBar,
+  ActivityIndicator
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const API_BASE_URL = 'http://192.168.1.2:3000';
 
 const FoodDetails = () => {
   const navigation = useNavigation();
@@ -67,25 +70,27 @@ const FoodDetails = () => {
     try {
       setAddingToCart(true);
       
-      // Get user token from AsyncStorage
-      const userData = await AsyncStorage.getItem('userData');
-      if (!userData) {
-        Alert.alert('Error', 'Please login to add items to cart');
-        navigation.navigate('Login');
-        return;
-      }
-
-      const parsedData = JSON.parse(userData);
-      const token = parsedData.token;
+      // Get token from separate userToken key (as stored in AuthScreen)
+      const token = await AsyncStorage.getItem('userToken');
+      const userDataString = await AsyncStorage.getItem('userData');
+      
+      console.log('🍕 FoodDetails - Token available:', token ? 'Yes' : 'No');
+      console.log('🍕 FoodDetails - User data available:', userDataString ? 'Yes' : 'No');
 
       if (!token) {
-        Alert.alert('Error', 'Please login to add items to cart');
-        navigation.navigate('Login');
+        Alert.alert(
+          'Login Required',
+          'Please login to add items to cart',
+          [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Login', onPress: () => navigation.replace('Auth') }
+          ]
+        );
         return;
       }
 
       // Call the add to cart API
-      const response = await fetch('http://192.168.1.3:3000/api/cart', {
+      const response = await fetch(`${API_BASE_URL}/api/cart`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -97,15 +102,18 @@ const FoodDetails = () => {
         })
       });
 
+      console.log('🍕 Add to cart API response status:', response.status);
+
       const result = await response.json();
 
       if (response.ok) {
         Alert.alert(
-          'Added to Cart',
+          'Added to Cart ✅',
           `Added ${quantity} ${foodName}(s) to cart for $${totalPrice}`,
           [
             {
               text: 'Continue Shopping',
+              style: 'cancel',
               onPress: () => navigation.goBack(),
             },
             {
@@ -115,11 +123,30 @@ const FoodDetails = () => {
           ]
         );
       } else {
-        Alert.alert('Error', result.message || 'Failed to add item to cart');
+        // Handle specific error cases
+        if (response.status === 400 && result.message === "Food item is not available") {
+          Alert.alert('Not Available', 'This item is currently not available.');
+        } else if (response.status === 404) {
+          Alert.alert('Not Found', 'Food item not found.');
+        } else if (response.status === 401) {
+          // Token expired
+          await AsyncStorage.multiRemove(['userToken', 'userData']);
+          Alert.alert(
+            'Session Expired',
+            'Please login again',
+            [{ text: 'OK', onPress: () => navigation.replace('Auth') }]
+          );
+        } else {
+          Alert.alert('Error', result.message || 'Failed to add item to cart');
+        }
       }
     } catch (error) {
-      console.error('Add to cart error:', error);
-      Alert.alert('Error', 'Failed to add item to cart. Please try again.');
+      console.error('❌ Add to cart error:', error);
+      if (error.message.includes('Network request failed')) {
+        Alert.alert('Network Error', 'Please check your internet connection and try again.');
+      } else {
+        Alert.alert('Error', 'Failed to add item to cart. Please try again.');
+      }
     } finally {
       setAddingToCart(false);
     }
@@ -213,19 +240,19 @@ const FoodDetails = () => {
                 )}
                 {foodItem.protein && (
                   <View style={styles.nutritionItem}>
-                    <Text style={styles.nutritionValue}>{foodItem.protein}</Text>
+                    <Text style={styles.nutritionValue}>{foodItem.protein}g</Text>
                     <Text style={styles.nutritionLabel}>Protein</Text>
                   </View>
                 )}
                 {foodItem.carbs && (
                   <View style={styles.nutritionItem}>
-                    <Text style={styles.nutritionValue}>{foodItem.carbs}</Text>
+                    <Text style={styles.nutritionValue}>{foodItem.carbs}g</Text>
                     <Text style={styles.nutritionLabel}>Carbs</Text>
                   </View>
                 )}
                 {foodItem.fat && (
                   <View style={styles.nutritionItem}>
-                    <Text style={styles.nutritionValue}>{foodItem.fat}</Text>
+                    <Text style={styles.nutritionValue}>{foodItem.fat}g</Text>
                     <Text style={styles.nutritionLabel}>Fat</Text>
                   </View>
                 )}
@@ -269,9 +296,14 @@ const FoodDetails = () => {
           onPress={addToCart}
           disabled={addingToCart}
         >
-          <Text style={styles.addToCartButtonText}>
-            {addingToCart ? 'Adding to Cart...' : `Add to Cart - $${totalPrice}`}
-          </Text>
+          {addingToCart ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="small" color="white" />
+              <Text style={styles.addToCartButtonText}>Adding to Cart...</Text>
+            </View>
+          ) : (
+            <Text style={styles.addToCartButtonText}>Add to Cart - ${totalPrice}</Text>
+          )}
         </TouchableOpacity>
       </View>
     </SafeAreaView>
@@ -555,6 +587,11 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
     fontWeight: '700',
+  },
+  loadingContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

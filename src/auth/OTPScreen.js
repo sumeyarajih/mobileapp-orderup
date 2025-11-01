@@ -14,7 +14,7 @@ import {
 
 const { width, height } = Dimensions.get("window");
 
-const API_BASE_URL = "http://192.168.1.3:3000/api";
+const API_BASE_URL = "http://192.168.1.2:3000/api";
 
 export default function OTPScreen({ navigation, route }) {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);

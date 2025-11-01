@@ -5,6 +5,7 @@ import {
   Animated,
   StyleSheet,
   Dimensions,
+  Platform,
 } from "react-native";
 import Icon from "react-native-vector-icons/Feather";
 
@@ -20,12 +21,11 @@ const BottomNavbar = ({ navigation, currentRoute }) => {
 
   // Map route names to indexes
   const routeToIndex = {
-    "HomePage": 0,
-    "Cart": 1,
-    "Profile": 2,
+    HomePage: 0,
+    Cart: 1,
+    Profile: 2,
   };
 
-  // Automatically set active index based on current route
   useEffect(() => {
     const index = routeToIndex[currentRoute];
     if (index !== undefined && index !== activeIndex) {
@@ -35,8 +35,7 @@ const BottomNavbar = ({ navigation, currentRoute }) => {
   }, [currentRoute]);
 
   const animateIcon = (index) => {
-    // Reset all animations first
-    animValues.forEach((val, i) => {
+    animValues.forEach((val) => {
       Animated.spring(val, {
         toValue: 0,
         friction: 5,
@@ -44,7 +43,6 @@ const BottomNavbar = ({ navigation, currentRoute }) => {
       }).start();
     });
 
-    // Animate the active icon
     Animated.sequence([
       Animated.spring(animValues[index], {
         toValue: -15,
@@ -60,12 +58,10 @@ const BottomNavbar = ({ navigation, currentRoute }) => {
   };
 
   const handlePress = (index, route) => {
-    // Don't navigate if already on the same page
     if (activeIndex === index) return;
-
     setActiveIndex(index);
     animateIcon(index);
-    
+
     if (navigation && route) {
       navigation.navigate(route);
     }
@@ -78,55 +74,61 @@ const BottomNavbar = ({ navigation, currentRoute }) => {
   ];
 
   return (
-    <View style={styles.container}>
-      {icons.map((icon, index) => {
-        const isActive = activeIndex === index;
-
-        return (
-          <TouchableOpacity
-            key={index}
-            activeOpacity={0.9}
-            onPress={() => handlePress(index, icon.route)}
-            style={styles.touchable}
-          >
-            <Animated.View
-              style={[
-                styles.iconContainer,
-                {
-                  transform: [{ translateY: animValues[index] }],
-                  backgroundColor: isActive ? "#39B54A" : "transparent",
-                },
-              ]}
+    <View style={styles.wrapper}>
+      <View style={styles.container}>
+        {icons.map((icon, index) => {
+          const isActive = activeIndex === index;
+          return (
+            <TouchableOpacity
+              key={index}
+              activeOpacity={0.9}
+              onPress={() => handlePress(index, icon.route)}
+              style={styles.touchable}
             >
-              <Icon
-                name={icon.name}
-                size={26}
-                color={isActive ? "#fff" : "#555"}
-              />
-            </Animated.View>
-          </TouchableOpacity>
-        );
-      })}
+              <Animated.View
+                style={[
+                  styles.iconContainer,
+                  {
+                    transform: [{ translateY: animValues[index] }],
+                    backgroundColor: isActive ? "#39B54A" : "transparent",
+                  },
+                ]}
+              >
+                <Icon
+                  name={icon.name}
+                  size={26}
+                  color={isActive ? "#fff" : "#555"}
+                />
+              </Animated.View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
+  wrapper: {
+    position: "absolute",
+    bottom: 0,
+    width: width,
     backgroundColor: "#fff",
-    paddingVertical: 14,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
-    elevation: 10,
+    elevation: 15,
     shadowColor: "#000",
     shadowOpacity: 0.1,
     shadowOffset: { width: 0, height: -3 },
     shadowRadius: 6,
-    width: width,
-    height: 80,
+    overflow: "hidden",
+  },
+  container: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    alignItems: "center",
+    height: 70,
+    paddingVertical: Platform.OS === "ios" ? 12 : 8,
   },
   touchable: {
     flex: 1,

@@ -61,7 +61,7 @@ const Homepage = ({ navigation }) => {
   const fetchFoodItems = async () => {
     try {
       setApiLoading(true);
-      const response = await fetch('http://192.168.1.3:3000/api/food-items');
+      const response = await fetch('http://192.168.1.2:3000/api/food-items');
 
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);

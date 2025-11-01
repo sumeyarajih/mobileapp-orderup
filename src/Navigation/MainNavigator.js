@@ -2,7 +2,10 @@ import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 
-// Import screens
+// Import screens - Make sure this path is correct
+import NotificationScreen from "../Screens/notification";
+
+// Import other screens
 import Splash1 from "../Screens/Splash/Splash1";
 import Splash2 from "../Screens/Splash/Splash2";
 import Homepage from "../Screens/HomePage";
@@ -30,11 +33,11 @@ const MainNavigator = () => {
         <Stack.Screen name="Cart" component={Cart} />
         <Stack.Screen name="Profile" component={Profile} />
         <Stack.Screen 
-          name="PaymentPage" 
-          component={PaymentPage}
-          options={{ headerShown: false }}
+          name="Notification" 
+          component={NotificationScreen}
         />
-          <Stack.Screen name="Auth" component={AuthScreen} />
+        <Stack.Screen name="PaymentPage" component={PaymentPage} />
+        <Stack.Screen name="Auth" component={AuthScreen} />
         <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         <Stack.Screen name="OTP" component={OTPScreen} />
       </Stack.Navigator>
